@@ -1,0 +1,7 @@
+# Runtime dependencies. After the first successful install, pin exact versions with:
+#   pip freeze > requirements.lock
+anthropic>=0.50        # official Claude SDK (Messages API, tool_choice incl. "none")
+oracledb>=2.2          # python-oracledb thin mode; 2.2+ understands the VECTOR type
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6

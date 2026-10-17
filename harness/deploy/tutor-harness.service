@@ -1,0 +1,73 @@
+# deploy/tutor-harness.service — systemd unit: the agent as its own user process.
+#
+# Install:  sudo cp deploy/tutor-harness.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now tutor-harness
+# Inspect:  systemd-analyze security tutor-harness     (aim for an exposure score under 2)
+#           journalctl -u tutor-harness -f
+#
+# Each directive below removes something the process does not need. Refs:
+#   https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html
+#   https://systemd.io/CREDENTIALS/
+
+[Unit]
+Description=Children's tutor agent harness (Claude + Oracle 26ai)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=tutor
+Group=tutor
+WorkingDirectory=/opt/tutor-harness
+ExecStart=/opt/tutor-harness/.venv/bin/python -m tutor.runtime.process
+EnvironmentFile=/etc/tutor-harness/env
+
+# Secrets as credentials: readable only by this service, under $CREDENTIALS_DIRECTORY,
+# never in the environment. runtime/config.py reads these names.
+LoadCredential=anthropic_api_key:/etc/tutor-harness/creds/anthropic_api_key
+LoadCredential=oracle_password:/etc/tutor-harness/creds/oracle_password
+LoadCredential=pseudonym_pepper:/etc/tutor-harness/creds/pseudonym_pepper
+LoadCredential=api_bearer_token:/etc/tutor-harness/creds/api_bearer_token
+
+Restart=on-failure
+RestartSec=3
+
+# --- filesystem: read-only OS, no home dirs, private /tmp, nothing writable ---
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+UMask=0077
+
+# --- privileges: none, and no way to gain any ---
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+
+# --- kernel surface ---
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+# --- network: IP only (Oracle + Claude API + loopback listener) ---
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# --- resource ceilings so a runaway loop can't starve the host ---
+MemoryMax=1G
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target
