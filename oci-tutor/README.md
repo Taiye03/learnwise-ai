@@ -201,7 +201,7 @@ python -m pytest -q
 
 | Name | Role |
 |---|---|
-| Siddhesh | Oracle AI Database and OCI: schema, embeddings, hint retrieval, progression |
+| Roman | Oracle AI Database and OCI: schema, embeddings, hint retrieval, progression |
 | Taiye Olomu | Python tutor service: session loop, OCI Generative AI, intent gate, leak check |
 | TODO | Student and teacher pages, slides, demo video |
 
